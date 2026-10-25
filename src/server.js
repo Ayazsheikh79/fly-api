@@ -47,9 +47,7 @@ const daemon = new FireflyDaemon({
 // Auto-start daemon if session.json exists
 const sessionFilePath = resolveDataPath("session.json");
 if (fs.existsSync(sessionFilePath)) {
-  daemon.start().catch(err => {
-    console.error("[Server] Auto-start daemon error:", err.message);
-  });
+  daemon.start();
 }
 
 // -------------------------------------------------------------
@@ -311,6 +309,15 @@ app.post("/v1/storage/upload", requireAuth, async (req, res) => {
 
 // 4. Generate Image (Protected & Enqueued Serially with Cooldown)
 app.post("/v1/images/generate", requireAuth, async (req, res) => {
+  // Ensure we have a valid token (refreshes on-demand if expired)
+  try {
+    const validToken = await daemon.ensureValidToken();
+    client.token = validToken;
+  } catch (tokenErr) {
+    return res.status(401).json({
+      error: tokenErr.message || "Adobe session expired. Please sync from Chrome extension."
+    });
+  }
   const {
     prompt,
     aspect = "auto",
