@@ -17,8 +17,8 @@
     "*://*.adobelogin.com/*",
     "*://*.services.adobe.com/*",
     "*://*.identity.adobe.com/*",
-    "http://localhost:*/*",
-    "http://127.0.0.1:*/*"
+    "http://*/*",
+    "https://*/*"
   ],
   "action": {
     "default_title": "Firefly API Companion",

@@ -31,6 +31,7 @@ const MODEL_MAP = {
 };
 
 import fs from "fs";
+import crypto from "crypto";
 import path from "path";
 import { resolveDataPath, OUTPUT_DIR } from "./config.js";
 
@@ -39,8 +40,8 @@ const ASPECT_RATIOS_3P = {
   "auto": null,
   "2:3": { width: 1024, height: 1536 },
   "tall": { width: 1024, height: 1536 },
-  "3:4": { width: 1024, height: 1365 },
-  "portrait": { width: 1024, height: 1365 },
+  "3:4": { width: 1024, height: 1360 },
+  "portrait": { width: 1024, height: 1360 },
   "4:5": { width: 1024, height: 1280 },
   "1:1": { width: 1024, height: 1024 },
   "square": { width: 1024, height: 1024 },
@@ -206,15 +207,13 @@ export class FireflyClient {
         }
       };
 
-      if (aspect && aspect !== "auto") {
-        payload.size = { aspect: aspect };
-      }
+      payload.size = (aspect !== "auto" && size3p) ? size3p : { width: 1024, height: 1024 };
     }
 
     // Submit Request with retry
     let submitRes;
     for (let retry = 0; retry < 4; retry++) {
-      const nonce = require("crypto").randomBytes(32).toString("hex");
+      const nonce = crypto.randomBytes(32).toString("hex");
       submitRes = await fetch(targetUrl, {
         method: "POST",
         headers: {
