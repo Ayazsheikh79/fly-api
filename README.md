@@ -323,6 +323,86 @@ def generate_image(prompt: str):
 
 ---
 
+---
+
+## 📦 Official SDKs (Node.js & Python)
+
+The repository provides zero-dependency native SDKs for your applications in [`sdk/`](sdk/).
+
+### Node.js (ESM / TypeScript)
+```javascript
+import { Firefly } from "./sdk/index.js";
+
+const firefly = new Firefly({
+  baseUrl: "http://YOUR_VPS_IP:5055",
+  apiKey: "YOUR_MASTER_KEY"
+});
+
+// Check balance
+const balance = await firefly.getBalance();
+console.log("Remaining Credits:", balance.available);
+
+// Generate image (Default: GPT Sunburst - 5 cr)
+const result = await firefly.generate({
+  prompt: "cyberpunk detective in rainy alleyway, neon signage",
+  aspect: "3:4"
+});
+console.log("Local Image:", result.imageUrl);
+console.log("Presigned S3 URL:", result.presignedUrl);
+```
+
+### Python (3.8+)
+```python
+from sdk.firefly import Firefly
+
+firefly = Firefly(
+    base_url="http://YOUR_VPS_IP:5055",
+    api_key="YOUR_MASTER_KEY"
+)
+
+# Check status
+status = firefly.get_status()
+print("Token valid:", status["token"]["valid"])
+
+# Generate image
+result = firefly.generate(
+    prompt="futuristic hovercar over cyberpunk city",
+    aspect="16:9",
+    model_id="clio-v4-standard" # Free 0 cr
+)
+print("Image URL:", result["imageUrl"])
+```
+
+---
+
+## 🤖 Model Context Protocol (MCP) Server
+
+Connect your Firefly microservice directly to AI coding assistants (**Antigravity**, **Claude Desktop**, **Cursor**) using standard MCP over STDIO.
+
+### MCP Tools Provided:
+1. **`firefly_generate_image`**: Text-to-image generation with aspect, quality, model, and reference image support.
+2. **`firefly_get_balance`**: Check remaining plan credits and quota reset date.
+3. **`firefly_get_status`**: Check connection health, token countdown, and queue load.
+4. **`firefly_list_models`**: List all 19 AI models and their live credit costs.
+
+### Configuration for Claude Desktop / Antigravity / Cursor
+Add to your `claude_desktop_config.json` or agent configuration:
+
+```json
+{
+  "mcpServers": {
+    "firefly": {
+      "command": "node",
+      "args": ["/path/to/firefly-api/mcp/server.js"],
+      "env": {
+        "FIREFLY_API_URL": "http://YOUR_VPS_IP:5055",
+        "FIREFLY_API_KEY": "YOUR_MASTER_KEY"
+      }
+    }
+  }
+}
+```
+
 ## 🧩 Chrome Companion Extension
 
 The unpacked extension in [`extension/`](extension/) enables 1-click token updates:
