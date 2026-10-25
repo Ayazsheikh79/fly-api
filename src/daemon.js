@@ -35,7 +35,14 @@ export class FireflyDaemon {
           "--no-sandbox",
           "--disable-setuid-sandbox",
           "--disable-dev-shm-usage",
-          "--disable-blink-features=AutomationControlled"
+          "--disable-blink-features=AutomationControlled",
+          "--disable-gpu",
+          "--disable-software-rasterizer",
+          "--disable-features=AudioServiceOutOfProcess,IsolateOrigins,site-per-process",
+          "--disable-background-networking",
+          "--disable-background-timer-throttling=false",
+          "--disable-renderer-backgrounding=false",
+          "--blink-settings=imagesEnabled=false"
         ]
       });
 
