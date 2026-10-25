@@ -138,7 +138,7 @@ export class FireflyClient {
 
     const {
       prompt,
-      modelId = "clio-v4-standard",
+      modelId = "gpt-image-2-5-prism",
       aspect = "auto",
       quality = "medium",
       addWatermark = false,

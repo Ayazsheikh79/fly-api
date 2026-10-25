@@ -276,7 +276,7 @@ app.get("/v1/credits/balance", requireAuth, async (req, res) => {
 
 // 3. Generate Image (Protected)
 app.post("/v1/images/generate", requireAuth, async (req, res) => {
-  const { prompt, aspect = "auto", quality = "medium", modelId, modelVersion } = req.body;
+  const { prompt, aspect = "auto", quality = "medium", modelId = "gpt-image-2-5-prism", modelVersion } = req.body;
   if (!prompt) {
     return res.status(400).json({ error: "prompt is required" });
   }
