@@ -206,15 +206,15 @@ export class FireflyClient {
         }
       };
 
-      if (aspect !== "auto" && size3p) {
-        payload.size = size3p;
+      if (aspect && aspect !== "auto") {
+        payload.size = { aspect: aspect };
       }
     }
 
     // Submit Request with retry
     let submitRes;
     for (let retry = 0; retry < 4; retry++) {
-      const nonce = Date.now().toString();
+      const nonce = require("crypto").randomBytes(32).toString("hex");
       submitRes = await fetch(targetUrl, {
         method: "POST",
         headers: {
