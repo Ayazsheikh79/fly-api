@@ -127,22 +127,35 @@ updateBtn.addEventListener("click", async () => {
       }
     }
 
-    // 3. Read LocalStorage, SessionStorage & AdobeIMS Token
+    // 3. Read LocalStorage, SessionStorage & AdobeIMS Token in MAIN World
     const [execResult] = await chrome.scripting.executeScript({
       target: { tabId: targetTab.id },
+      world: "MAIN",
       func: () => {
         const local = {};
+        let detectedToken = null;
         for (let i = 0; i < localStorage.length; i++) {
           const k = localStorage.key(i);
-          local[k] = localStorage.getItem(k);
+          const v = localStorage.getItem(k);
+          local[k] = v;
+          if (v && typeof v === 'string' && v.startsWith('eyJ') && v.length > 200 && !detectedToken) {
+            detectedToken = { token: v, expire: new Date(Date.now() + 86400000).toISOString() };
+          }
         }
         const session = {};
         for (let i = 0; i < sessionStorage.length; i++) {
           const k = sessionStorage.key(i);
-          session[k] = sessionStorage.getItem(k);
+          const v = sessionStorage.getItem(k);
+          session[k] = v;
+          if (v && typeof v === 'string' && v.startsWith('eyJ') && v.length > 200 && !detectedToken) {
+            detectedToken = { token: v, expire: new Date(Date.now() + 86400000).toISOString() };
+          }
         }
-        const ims = window.adobeIMS?.getAccessToken();
-        return { local, session, ims };
+        let ims = null;
+        try {
+          ims = window.adobeIMS?.getAccessToken();
+        } catch (e) {}
+        return { local, session, ims: ims || detectedToken };
       }
     });
 

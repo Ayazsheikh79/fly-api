@@ -1277,9 +1277,31 @@ docker compose logs -f<button class="copy-btn" onclick="copyText(this)">Copy</bu
       updateKeyUI();
     }
 
+    
+    function copyToClipboard(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text);
+      }
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+      } catch (err) {
+        console.error('Fallback copy failed', err);
+      }
+      document.body.removeChild(textArea);
+      return Promise.resolve();
+    }
+
     function copyMasterKey() {
       if (!activeApiKey) return;
-      navigator.clipboard.writeText(activeApiKey);
+      copyToClipboard(activeApiKey);
       const topbarBtn = document.querySelector(".topbar-key-chip button");
       const panelBtn = document.getElementById("copyKeyBtn");
       if (topbarBtn) topbarBtn.textContent = "Copied!";
@@ -1400,7 +1422,7 @@ docker compose logs -f<button class="copy-btn" onclick="copyText(this)">Copy</bu
 
     function copyText(btn) {
       const code = btn.parentElement.querySelector("code").innerText;
-      navigator.clipboard.writeText(code);
+      copyToClipboard(code);
       btn.textContent = "Copied!";
       setTimeout(() => btn.textContent = "Copy", 1500);
     }

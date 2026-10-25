@@ -231,14 +231,21 @@ app.get("/api/status", async (req, res) => {
     try {
       const data = JSON.parse(fs.readFileSync(tokenFile, "utf8"));
       let expDate = null;
-      if (data.expire) {
+      if (typeof data.expire === 'string' || typeof data.expire === 'number') {
         expDate = new Date(data.expire);
-      } else if (data.token) {
-        const parts = data.token.split(".");
-        if (parts.length >= 2) {
-          const payload = JSON.parse(Buffer.from(parts[1], "base64").toString());
-          if (payload.created_at && payload.expires_in) {
-            expDate = new Date(Number(payload.created_at) + Number(payload.expires_in));
+      }
+      if (!expDate || isNaN(expDate.getTime())) {
+        if (data.token) {
+          const parts = data.token.split('.');
+          if (parts.length >= 2) {
+            try {
+              const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+              if (payload.created_at && payload.expires_in) {
+                expDate = new Date(Number(payload.created_at) + Number(payload.expires_in));
+              } else if (payload.exp) {
+                expDate = new Date(Number(payload.exp) * 1000);
+              }
+            } catch (e) {}
           }
         }
       }
