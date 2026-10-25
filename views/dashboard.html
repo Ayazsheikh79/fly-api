@@ -694,31 +694,7 @@
   </style>
 </head>
 <body>
-  <!-- LOGIN MODAL OVERLAY -->
-  <div id="loginOverlay" class="login-overlay">
-    <div class="login-modal">
-      <div class="login-header">
-        <div class="brand-icon" style="margin: 0 auto 8px; width: 38px; height: 38px; font-size: 18px;">F</div>
-        <h2>Firefly API Login</h2>
-        <p>Default credentials: <strong>admin</strong> / <strong>admin</strong></p>
-      </div>
-
-      <form id="loginForm" onsubmit="handleLoginSubmit(event)">
-        <div class="form-group">
-          <label class="form-label">Username</label>
-          <input type="text" id="loginUsername" class="form-control" value="admin" required autofocus>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Password</label>
-          <input type="password" id="loginPassword" class="form-control" value="admin" required>
-        </div>
-        <button type="submit" id="loginBtn" class="btn-primary" style="margin-top: 18px;">
-          Sign In to Dashboard
-        </button>
-        <div id="loginMsg" class="login-msg"></div>
-      </form>
-    </div>
-  </div>
+  
 
 
   <!-- SIDEBAR NAVIGATION -->
@@ -1116,28 +1092,18 @@ docker compose logs -f<button class="copy-btn" onclick="copyText(this)">Copy</bu
     }
 
     async function checkAuth() {
-      if (!activeSessionToken && !activeApiKey) {
-        showLoginModal();
-        return false;
-      }
-
       try {
-        const res = await fetch("/api/auth/check", { headers: getAuthHeaders() });
+        const res = await fetch("/api/auth/check");
         if (res.ok) {
           const data = await res.json();
-          if (data.apiKey) {
-            setKey(data.apiKey);
-          }
-          hideLoginModal();
+          if (data.apiKey) setKey(data.apiKey);
           return true;
-        } else {
-          showLoginModal("Session expired. Please log in.", true);
+        } else if (res.status === 401) {
+          window.location.href = "/login";
           return false;
         }
-      } catch (err) {
-        console.warn("Auth check network error:", err.message);
-        return false;
-      }
+      } catch (e) {}
+      return true;
     }
 
     async function handleLoginSubmit(e) {
@@ -1182,15 +1148,10 @@ docker compose logs -f<button class="copy-btn" onclick="copyText(this)">Copy</bu
     async function handleLogout() {
       if (confirm("Are you sure you want to log out of the dashboard?")) {
         try {
-          await fetch("/api/logout", {
-            method: "POST",
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ sessionToken: activeSessionToken })
-          });
+          await fetch("/api/logout", { method: "POST" });
         } catch (e) {}
-        activeSessionToken = "";
         localStorage.removeItem("firefly_sess");
-        showLoginModal("You have been logged out.");
+        window.location.href = "/login";
       }
     }
 
@@ -1423,7 +1384,7 @@ docker compose logs -f<button class="copy-btn" onclick="copyText(this)">Copy</bu
       try {
         const res = await fetch("/v1/credits/balance", { headers: getAuthHeaders() });
         if (res.status === 401) {
-          showLoginModal();
+          window.location.href = "/login";
           return;
         }
         const data = await res.json();
@@ -1475,9 +1436,7 @@ docker compose logs -f<button class="copy-btn" onclick="copyText(this)">Copy</bu
         });
 
         if (res.status === 401) {
-          showLoginModal("Authentication required to generate images.", true);
-          genStatus.textContent = "Authentication required (401)";
-          emptyText.style.display = "block";
+          window.location.href = "/login";
           return;
         }
 

@@ -13,12 +13,12 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: "25mb" }));
 
-// Static file hosting for dashboard and generated images
-app.use(express.static(path.join(ROOT_DIR, "public")));
+// Static file hosting for output images and public assets
 app.use("/output", express.static(OUTPUT_DIR));
 if (fs.existsSync(path.join(ROOT_DIR, "output"))) {
   app.use("/output", express.static(path.join(ROOT_DIR, "output")));
 }
+app.use(express.static(path.join(ROOT_DIR, "public")));
 
 // Start automatic 7-day rolling cleanup
 scheduleDailyCleanup(OUTPUT_DIR, 7);
@@ -45,19 +45,45 @@ if (fs.existsSync(sessionFilePath)) {
 }
 
 // -------------------------------------------------------------
-// Authentication Middleware
+// Authentication Helpers & Middleware
 // -------------------------------------------------------------
-function requireAuth(req, res, next) {
+function getCookie(req, name) {
+  const cookieHeader = req.headers.cookie;
+  if (!cookieHeader) return null;
+  const cookies = cookieHeader.split(";").map(c => c.trim());
+  for (const c of cookies) {
+    const [k, ...v] = c.split("=");
+    if (k === name) return decodeURIComponent(v.join("="));
+  }
+  return null;
+}
+
+function isAuthenticated(req) {
+  // 1. API Key Header
   const apiKey = req.headers["x-api-key"] || req.headers.authorization;
   if (apiKey && configManager.verifyApiKey(apiKey)) {
-    return next();
+    return true;
   }
 
-  const sessionToken = req.headers["x-session-token"];
-  if (sessionToken && configManager.verifySession(sessionToken)) {
-    return next();
+  // 2. Custom Session Header
+  const sessionTokenHeader = req.headers["x-session-token"];
+  if (sessionTokenHeader && configManager.verifySession(sessionTokenHeader)) {
+    return true;
   }
 
+  // 3. HttpOnly Session Cookie
+  const sessionCookie = getCookie(req, "ff_sess");
+  if (sessionCookie && configManager.verifySession(sessionCookie)) {
+    return true;
+  }
+
+  return false;
+}
+
+function requireAuth(req, res, next) {
+  if (isAuthenticated(req)) {
+    return next();
+  }
   return res.status(401).json({
     error: "Unauthorized",
     message: "Valid Master API Key or Admin Session required."
@@ -65,10 +91,30 @@ function requireAuth(req, res, next) {
 }
 
 // -------------------------------------------------------------
+// Server-Side Protected HTML Page Routes
+// -------------------------------------------------------------
+
+// GET / - Dashboard (Physically refuses to serve dashboard.html without auth)
+app.get("/", (req, res) => {
+  if (!isAuthenticated(req)) {
+    return res.redirect("/login");
+  }
+  res.sendFile(path.join(ROOT_DIR, "views", "dashboard.html"));
+});
+
+// GET /login - Login Page (Redirects to dashboard if already logged in)
+app.get("/login", (req, res) => {
+  if (isAuthenticated(req)) {
+    return res.redirect("/");
+  }
+  res.sendFile(path.join(ROOT_DIR, "views", "login.html"));
+});
+
+// -------------------------------------------------------------
 // Auth & Key Management Endpoints
 // -------------------------------------------------------------
 
-// Login endpoint
+// Login endpoint: verifies admin and sets HttpOnly cookie
 app.post("/api/login", (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
@@ -77,23 +123,28 @@ app.post("/api/login", (req, res) => {
 
   if (configManager.verifyAdmin(username, password)) {
     const sessionToken = configManager.createSession();
+    res.setHeader("Set-Cookie", `ff_sess=${sessionToken}; Path=/; HttpOnly; SameSite=Lax`);
     return res.json({
       success: true,
       sessionToken,
-      apiKey: configManager.getApiKey()
+      apiKey: configManager.getApiKey(),
+      redirect: "/"
     });
   }
 
   return res.status(401).json({ error: "Invalid username or password" });
 });
 
-// Logout endpoint
+// Logout endpoint: invalidates session and clears cookie
 app.post("/api/logout", (req, res) => {
-  const sessionToken = req.headers["x-session-token"] || req.body.sessionToken;
-  if (sessionToken) {
-    configManager.destroySession(sessionToken);
+  const sessionCookie = getCookie(req, "ff_sess");
+  const sessionHeader = req.headers["x-session-token"];
+  const token = sessionCookie || sessionHeader;
+  if (token) {
+    configManager.destroySession(token);
   }
-  res.json({ success: true, message: "Logged out successfully" });
+  res.setHeader("Set-Cookie", `ff_sess=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax`);
+  res.json({ success: true, message: "Logged out successfully", redirect: "/login" });
 });
 
 // Check auth status
