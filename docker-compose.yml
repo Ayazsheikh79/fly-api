@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   firefly-api:
     build: .
@@ -14,3 +12,8 @@ services:
     volumes:
       - ./data:/app/data
     ipc: host
+    deploy:
+      resources:
+        limits:
+          cpus: '0.80'
+          memory: 1200M

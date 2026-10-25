@@ -133,6 +133,7 @@ export class FireflyDaemon {
 
       // Check every 5 minutes
       this.checkInterval = setInterval(() => this.checkAndRefreshToken(), 5 * 60 * 1000);
+      if (this.checkInterval.unref) this.checkInterval.unref();
 
     } catch (err) {
       this.status = "error: " + err.message;
