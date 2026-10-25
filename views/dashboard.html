@@ -762,20 +762,20 @@
       <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-label">Generative Credits</div>
-          <div class="stat-val" id="creditsVal">2,369 / 4,000</div>
-          <div class="stat-sub" id="creditsSub">1,631 consumed this period</div>
+          <div class="stat-val" id="creditsVal">— / —</div>
+          <div class="stat-sub" id="creditsSub">Loading credits...</div>
         </div>
 
         <div class="stat-card">
           <div class="stat-label">Token Expiration</div>
-          <div class="stat-val" id="tokenHoursVal">23h left</div>
-          <div class="stat-sub" id="tokenSub">Auto-refreshed via extension</div>
+          <div class="stat-val" id="tokenHoursVal">—</div>
+          <div class="stat-sub" id="tokenSub">Checking token...</div>
         </div>
 
         <div class="stat-card">
           <div class="stat-label">Standard Daily Quota</div>
-          <div class="stat-val" style="color: var(--success);">10,000 / day</div>
-          <div class="stat-sub">Free Fair Use (Firefly 3 & 4)</div>
+          <div class="stat-val" style="color: var(--success);">Free / Fair Use</div>
+          <div class="stat-sub">Unlimited 0 cr (Firefly 3 & 4)</div>
         </div>
 
         <div class="stat-card">
@@ -1478,30 +1478,52 @@ docker compose logs -f<button class="copy-btn" onclick="copyText(this)">Copy</bu
     async function fetchStatus() {
       try {
         const res = await fetch("/api/status");
+        if (!res.ok) throw new Error("Status request failed");
         const data = await res.json();
         
-        if (data.token) {
+        if (data.token && data.token.valid) {
           const hours = data.token.remainingHours;
           document.getElementById("tokenHoursVal").textContent = `${hours}h left`;
-          document.getElementById("tokenSub").textContent = `Valid until ${new Date(data.token.expiresAt).toLocaleTimeString()}`;
+          const expText = data.token.expiresAt ? new Date(data.token.expiresAt).toLocaleTimeString() : "active";
+          document.getElementById("tokenSub").textContent = `Valid until ${expText}`;
+        } else {
+          document.getElementById("tokenHoursVal").textContent = "Expired / None";
+          document.getElementById("tokenSub").textContent = "Sync required via extension";
         }
-      } catch (e) {}
+      } catch (e) {
+        document.getElementById("tokenHoursVal").textContent = "Offline";
+        document.getElementById("tokenSub").textContent = "Server unreachable";
+      }
     }
 
     async function fetchBalance() {
       try {
         const res = await fetch("/v1/credits/balance", { headers: getAuthHeaders() });
         if (res.status === 401) {
-          window.location.href = "/login";
+          document.getElementById("creditsVal").textContent = "API Key Required";
+          document.getElementById("creditsSub").textContent = "Please sign in";
+          return;
+        }
+        if (!res.ok) {
+          document.getElementById("creditsVal").textContent = "— / —";
+          document.getElementById("creditsSub").textContent = "Unable to fetch balance";
           return;
         }
         const data = await res.json();
-        
-        if (data.available !== undefined) {
+        if (data.available !== undefined && data.total !== undefined) {
           document.getElementById("creditsVal").textContent = `${data.available.toLocaleString()} / ${data.total.toLocaleString()}`;
-          document.getElementById("creditsSub").textContent = `${data.used.toLocaleString()} consumed this period`;
+          document.getElementById("creditsSub").textContent = `${(data.used || 0).toLocaleString()} consumed this period`;
+        } else if (data.available !== undefined) {
+          document.getElementById("creditsVal").textContent = `${data.available.toLocaleString()} credits`;
+          document.getElementById("creditsSub").textContent = "Credits available";
+        } else {
+          document.getElementById("creditsVal").textContent = "— / —";
+          document.getElementById("creditsSub").textContent = "No data returned";
         }
-      } catch (e) {}
+      } catch (e) {
+        document.getElementById("creditsVal").textContent = "— / —";
+        document.getElementById("creditsSub").textContent = "Server unreachable";
+      }
     }
 
     // Playground Generation

@@ -56,7 +56,7 @@ async function checkServerHealth() {
       tokenExpiryEl.style.color = "#dc2626";
     }
 
-    // Also fetch balance with auth header if key provided
+    // Fetch real-time balance with auth header if key provided
     try {
       const bRes = await fetch(`${serverUrl}/v1/credits/balance`, {
         headers: getHeaders(),
@@ -64,15 +64,24 @@ async function checkServerHealth() {
       });
       if (bRes.ok) {
         const bData = await bRes.json();
-        if (bData.available !== undefined) {
+        if (bData.available !== undefined && bData.total !== undefined) {
           creditsStatEl.textContent = `${bData.available.toLocaleString()} / ${bData.total.toLocaleString()}`;
           creditsStatEl.style.color = "#1e293b";
+        } else if (bData.available !== undefined) {
+          creditsStatEl.textContent = `${bData.available.toLocaleString()} credits`;
+          creditsStatEl.style.color = "#1e293b";
+        } else {
+          creditsStatEl.textContent = "— / —";
         }
       } else if (bRes.status === 401) {
-        creditsStatEl.textContent = "Requires API Key";
+        creditsStatEl.textContent = "API Key Required";
         creditsStatEl.style.color = "#d97706";
+      } else {
+        creditsStatEl.textContent = "— / —";
       }
-    } catch (be) {}
+    } catch (be) {
+      creditsStatEl.textContent = "— / —";
+    }
 
   } catch (err) {
     connBadge.className = "badge badge-disconnected";
