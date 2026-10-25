@@ -150,7 +150,58 @@ curl -X POST http://localhost:5055/v1/images/generate \
 
 ---
 
-### 2. Check Credit Balance
+### 2. Upload Reference Image (Max 4)
+`POST /v1/storage/upload`
+
+Directly upload a reference image to Adobe storage and receive an asset ID.
+
+#### Request Body
+```json
+{
+  "image": "data:image/png;base64,iVBORw0KGgo...",
+  "mimeType": "image/png"
+}
+```
+
+#### Response (HTTP 200)
+```json
+{
+  "success": true,
+  "assetId": "95e1a214-0fc2-4f7b-bd65-102dd56a9785",
+  "mimeType": "image/png",
+  "bytes": 27472
+}
+```
+
+---
+
+### 3. Generate Image with References
+`POST /v1/images/generate`
+
+You can attach reference images by:
+* **Asset ID**: Returned from `/v1/storage/upload`
+* **Data URL / Base64**
+* **Public URL** (fetched & uploaded in background)
+* **Local File Path**
+
+```bash
+curl -X POST http://localhost:5055/v1/images/generate \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_MASTER_KEY" \
+  -d '{
+    "prompt": "futuristic crystal flower hologram in dark void",
+    "modelId": "clio-v4-standard",
+    "referenceImages": [
+      { "id": "95e1a214-0fc2-4f7b-bd65-102dd56a9785", "usage": "subject" }
+    ]
+  }'
+```
+
+*(Note: Maximum 4 reference images allowed per request. Native Firefly models support subject, style, and structure).*
+
+---
+
+### 4. Check Credit Balance
 `GET /v1/credits/balance`
 
 ```bash
@@ -169,7 +220,7 @@ curl http://localhost:5055/v1/credits/balance \
 
 ---
 
-### 3. Service Status & Token Health (Public)
+### 5. Service Status, Token & Queue Health (Public)
 `GET /api/status`
 
 ```bash
@@ -191,7 +242,7 @@ curl http://localhost:5055/api/status
 
 ---
 
-### 4. Reset / Rotate Master API Key
+### 6. Reset / Rotate Master API Key
 `POST /api/key/reset`
 
 Immediately revokes the previous key and generates a new one.
