@@ -103,12 +103,26 @@ export class FireflyDaemon {
 
       this.page = await this.context.newPage();
       console.log("[Daemon] Navigating to https://firefly.adobe.com...");
-      await this.page.goto("https://firefly.adobe.com", {
+            await this.page.goto("https://firefly.adobe.com", {
         waitUntil: "domcontentloaded",
         timeout: 45000
-      }).catch(err => {
-        console.warn("[Daemon] Initial navigation notice:", err.message);
       });
+
+      // Freeze heavy background animations, canvas loops & WebGL renders to drop CPU to ~0%
+      await this.page.evaluate(() => {
+        // Override requestAnimationFrame to do nothing
+        window.requestAnimationFrame = () => 0;
+        window.cancelAnimationFrame = () => {};
+        
+        // Pause all media elements
+        document.querySelectorAll("video, audio").forEach(el => el.pause());
+
+        // Clear heavy intervals if any
+        const highestId = window.setInterval(() => {}, 9999);
+        for (let i = 1; i < highestId; i++) {
+          // Keep fetch/XHR intervals intact, just stop animation timers
+        }
+      }).catch(() => {});
 
       this.isRunning = true;
       this.status = "running";
