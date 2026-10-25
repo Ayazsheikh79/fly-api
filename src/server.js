@@ -6,6 +6,7 @@ import { FireflyClient } from "./client.js";
 import { FireflyDaemon } from "./daemon.js";
 import { configManager, resolveDataPath, OUTPUT_DIR, ROOT_DIR } from "./config.js";
 import { scheduleDailyCleanup } from "./cleanup.js";
+import { globalQueue } from "./queue.js";
 import {
   getClientIp,
   checkLoginRateLimit,
@@ -260,7 +261,8 @@ app.get("/api/status", async (req, res) => {
     status: "ok",
     daemonStatus: daemon.status,
     lastCheck: daemon.lastCheckTime,
-    token: tokenInfo
+    token: tokenInfo,
+    queue: globalQueue.stats
   });
 });
 
@@ -274,22 +276,83 @@ app.get("/v1/credits/balance", requireAuth, async (req, res) => {
   }
 });
 
-// 3. Generate Image (Protected)
+// 3. Upload Reference Image (Protected)
+app.post("/v1/storage/upload", requireAuth, async (req, res) => {
+  try {
+    const { image, mimeType = "image/png" } = req.body;
+    if (!image) {
+      return res.status(400).json({ error: "image (base64 or data URL) is required" });
+    }
+
+    let buffer;
+    let finalMime = mimeType;
+
+    if (image.startsWith("data:image/")) {
+      const matches = image.match(/^data:([A-Za-z-+\\/]+);base64,(.+)$/);
+      if (matches) {
+        finalMime = matches[1];
+        buffer = Buffer.from(matches[2], "base64");
+      }
+    } else {
+      buffer = Buffer.from(image, "base64");
+    }
+
+    const assetId = await client.uploadReferenceImage(buffer, finalMime);
+    res.json({
+      success: true,
+      assetId,
+      mimeType: finalMime,
+      bytes: buffer.length
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 4. Generate Image (Protected & Enqueued Serially with Cooldown)
 app.post("/v1/images/generate", requireAuth, async (req, res) => {
-  const { prompt, aspect = "auto", quality = "medium", modelId = "gpt-image-2-5-prism", modelVersion } = req.body;
+  const {
+    prompt,
+    aspect = "auto",
+    quality = "medium",
+    modelId = "gpt-image-2-5-prism",
+    modelVersion,
+    referenceImages = [],
+    referenceImage,
+    referenceUsage = "subject"
+  } = req.body;
+
   if (!prompt) {
     return res.status(400).json({ error: "prompt is required" });
   }
 
-  const startTime = Date.now();
-  try {
-    const result = await client.generateImage({
-      prompt,
-      aspect,
-      quality,
-      modelId,
-      modelVersion
+  // Normalize reference images array (enforce max 4)
+  let allReferences = Array.isArray(referenceImages) ? [...referenceImages] : [];
+  if (referenceImage && allReferences.length === 0) {
+    allReferences.push({
+      buffer: referenceImage,
+      usage: referenceUsage
     });
+  }
+
+  if (allReferences.length > 4) {
+    return res.status(400).json({ error: "Maximum 4 reference images allowed per request" });
+  }
+
+  const startTime = Date.now();
+
+  try {
+    // Submit task to the Global Serial Queue (Concurrency = 1, 5s Cooldown)
+    const result = await globalQueue.enqueue(async () => {
+      return await client.generateImage({
+        prompt,
+        aspect,
+        quality,
+        modelId,
+        modelVersion,
+        referenceImages: allReferences
+      });
+    }, { prompt, modelId });
 
     res.json({
       success: true,
@@ -298,10 +361,16 @@ app.post("/v1/images/generate", requireAuth, async (req, res) => {
       imageUrl: `/output/${path.basename(result.filePath)}`,
       presignedUrl: result.presignedUrl,
       imagePath: result.filePath,
+      model: result.model,
+      referencesAttached: allReferences.length,
       latencyMs: Date.now() - startTime
     });
   } catch (err) {
-    res.status(500).json({ error: err.message, latencyMs: Date.now() - startTime });
+    const statusCode = err.status || 500;
+    res.status(statusCode).json({
+      error: err.message,
+      latencyMs: Date.now() - startTime
+    });
   }
 });
 

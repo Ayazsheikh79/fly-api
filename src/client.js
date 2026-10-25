@@ -1,86 +1,72 @@
-const MODEL_MAP = {
-  // Google Nano Banana
-  "nano-banana-3": { type: "3p", modelId: "gemini-flash", modelVersion: "nano-banana-3" },
-  "nano-banana-2026-09": { type: "3p", modelId: "gemini-flash", modelVersion: "nano_banana_2026_09" },
-  "gemini-flash-2": { type: "3p", modelId: "gemini-flash", modelVersion: "gemini_flash_2" },
+import fs from "fs";
+import path from "path";
+import crypto from "crypto";
+import { resolveDataPath } from "./config.js";
 
-  // OpenAI GPT Image
+// Canonical Mapping of all supported models
+export const MODEL_MAP = {
+  // Adobe Native Models
+  "image5-generate": { type: "native", modelVersion: "image5_standard", modelId: "image5-generate" },
+  "clio-v4-ultra": { type: "native", modelVersion: "image4_ultra", modelId: "clio-v4-ultra" },
+  "clio-v4-standard": { type: "native", modelVersion: "image4_standard", modelId: "clio-v4-standard" },
+  "clio-v3-standard": { type: "native", modelVersion: "image3_standard", modelId: "clio-v3-standard" },
+
+  // Partner Models (Google)
+  "nano-banana-3": { type: "3p", modelId: "gemini-flash", modelVersion: "nano-banana-3" },
+  "nano-banana-2026-09": { type: "3p", modelId: "gemini-flash", modelVersion: "nano-banana-2026-09" },
+  "gemini-flash-2": { type: "3p", modelId: "gemini-flash", modelVersion: "gemini-flash-2" },
+
+  // Partner Models (OpenAI)
   "gpt-image-2-5-prism": { type: "3p", modelId: "gpt-image", modelVersion: "gpt-image-2.5-prism" },
   "gpt-image-2-5-flare": { type: "3p", modelId: "gpt-image", modelVersion: "gpt-image-2.5-flare" },
   "gpt-image-2": { type: "3p", modelId: "gpt-image", modelVersion: "gpt-image-2" },
   "gpt-image-1-5": { type: "3p", modelId: "gpt-image", modelVersion: "gpt-image-1.5" },
-  "gpt4o": { type: "3p", modelId: "gpt-4o-image", modelVersion: "default" },
+  "gpt4o": { type: "3p", modelId: "gpt-image", modelVersion: "gpt-4o" },
 
-  // Black Forest Labs FLUX
+  // Partner Models (FLUX - Black Forest Labs)
   "flux-2-pro": { type: "3p", modelId: "flux", modelVersion: "flux-2-pro" },
-  "flux-pro-ultra": { type: "3p", modelId: "fluxUltra", modelVersion: "default" },
-  "flux-1-1": { type: "3p", modelId: "flux", modelVersion: "flux-1.1" },
+  "flux-pro-ultra": { type: "3p", modelId: "flux", modelVersion: "flux-1.1-pro-ultra-raw" },
+  "flux-1-1": { type: "3p", modelId: "flux", modelVersion: "flux-1.1-pro" },
   "flux-kontext-max": { type: "3p", modelId: "flux", modelVersion: "flux-kontext-max" },
   "flux-kontext-pro": { type: "3p", modelId: "flux", modelVersion: "flux-kontext-pro" },
 
-  // Adobe Native Models (Different Endpoint & Payload!)
-  "clio-v4-standard": { type: "native", modelVersion: "image4_standard" },
-  "clio-v4-ultra": { type: "native", modelVersion: "image4_ultra" },
-  "clio-v3-standard": { type: "native", modelVersion: "image3_standard" },
-  "image5-generate": { type: "native", modelVersion: "image5_generate" },
-  "clio-v5-lora": { type: "native", modelVersion: "image4_standard" },
-
-  // Cinematic & Photoreal
-  "runway-gen4": { type: "3p", modelId: "runway-gen4-image", modelVersion: "default" },
-  "foundry-humain": { type: "3p", modelId: "humain", modelVersion: "default" }
+  // Partner Models (Cinematic & Photoreal)
+  "runway-gen4": { type: "3p", modelId: "runway", modelVersion: "gen4_image" },
+  "foundry-humain": { type: "3p", modelId: "foundry", modelVersion: "humain-image-1" }
 };
 
-import fs from "fs";
-import crypto from "crypto";
-import path from "path";
-import { resolveDataPath, OUTPUT_DIR } from "./config.js";
-
-// 3P Aspect Ratios
-const ASPECT_RATIOS_3P = {
-  "auto": null,
-  "2:3": { width: 1024, height: 1536 },
-  "tall": { width: 1024, height: 1536 },
-  "3:4": { width: 1024, height: 1360 },
-  "portrait": { width: 1024, height: 1360 },
-  "4:5": { width: 1024, height: 1280 },
-  "1:1": { width: 1024, height: 1024 },
+export const ASPECT_RATIOS_NATIVE = {
+  "auto": { width: 1024, height: 1024 },
   "square": { width: 1024, height: 1024 },
-  "16:9": { width: 1792, height: 1024 },
   "landscape": { width: 1792, height: 1024 },
-  "9:16": { width: 1024, height: 1792 }
+  "portrait": { width: 1024, height: 1792 },
+  "widescreen": { width: 2048, height: 1152 }
 };
 
-// Native Firefly Exact Supported Aspect Ratios
-const ASPECT_RATIOS_NATIVE = {
-  "auto": { width: 1792, height: 2304 },
-  "3:4": { width: 1792, height: 2304 },
-  "portrait": { width: 1792, height: 2304 },
-  "4:5": { width: 1792, height: 2304 },
-  "2:3": { width: 1792, height: 2688 },
-  "tall": { width: 1792, height: 2688 },
+export const ASPECT_RATIOS_3P = {
+  "auto": { width: 1024, height: 1024 },
   "1:1": { width: 1024, height: 1024 },
   "square": { width: 1024, height: 1024 },
-  "16:9": { width: 2688, height: 1536 },
-  "landscape": { width: 2688, height: 1536 },
-  "9:16": { width: 1440, height: 2560 }
+  "16:9": { width: 1344, height: 768 },
+  "landscape": { width: 1344, height: 768 },
+  "9:16": { width: 768, height: 1344 },
+  "portrait": { width: 768, height: 1344 },
+  "4:3": { width: 1184, height: 896 },
+  "3:4": { width: 1024, height: 1360 }
 };
 
 export class FireflyClient {
   constructor(options = {}) {
-    this.token = options.token || this.resolveToken();
     this.apiKey = options.apiKey || "clio-playground-web";
-    this.outputDir = options.outputDir || OUTPUT_DIR;
+    this.outputDir = resolveDataPath("output");
+    this.token = this.loadToken();
 
     if (!fs.existsSync(this.outputDir)) {
       fs.mkdirSync(this.outputDir, { recursive: true });
     }
   }
 
-  resolveToken() {
-    if (process.env.ADOBE_FIREFLY_TOKEN) {
-      return process.env.ADOBE_FIREFLY_TOKEN.trim();
-    }
-
+  loadToken() {
     const tokenFile = resolveDataPath("token.json");
     if (fs.existsSync(tokenFile)) {
       try {
@@ -129,6 +115,105 @@ export class FireflyClient {
   }
 
   /**
+   * Upload an image buffer or file stream to Adobe Firefly asset storage
+   * Returns the asset ID for referenceBlobs
+   * @param {Buffer} buffer - Image binary buffer
+   * @param {string} mimeType - e.g. "image/png" or "image/jpeg"
+   * @returns {Promise<string>} Adobe storage asset ID
+   */
+  async uploadReferenceImage(buffer, mimeType = "image/png") {
+    if (!this.token) {
+      throw new Error("No Adobe Firefly Token found for upload.");
+    }
+
+    const res = await fetch("https://image-v4.ff.adobe.io/v2/storage/image", {
+      method: "POST",
+      headers: {
+        "authorization": `Bearer ${this.token}`,
+        "x-api-key": this.apiKey,
+        "content-type": mimeType
+      },
+      body: buffer
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Failed to upload reference image (${res.status}): ${err}`);
+    }
+
+    const data = await res.json();
+    if (data.images && data.images.length > 0 && data.images[0].id) {
+      return data.images[0].id;
+    }
+    throw new Error(`Invalid upload response structure: ${JSON.stringify(data)}`);
+  }
+
+  /**
+   * Helper to normalize up to 4 reference images from IDs, URLs, base64 or file paths
+   * @param {Array<Object|string>} referenceImages
+   * @returns {Promise<Array<{id: string, usage: string}>>}
+   */
+  async resolveReferenceBlobs(referenceImages = []) {
+    if (!Array.isArray(referenceImages) || referenceImages.length === 0) {
+      return [];
+    }
+
+    // Enforce maximum 4 reference images
+    const limited = referenceImages.slice(0, 4);
+    const resolved = [];
+
+    for (const item of limited) {
+      // 1. If string is already an Adobe UUID
+      if (typeof item === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.trim())) {
+        resolved.push({ id: item.trim(), usage: "subject" });
+        continue;
+      }
+
+      // 2. If object with existing ID
+      if (typeof item === "object" && item.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.id.trim())) {
+        resolved.push({ id: item.id.trim(), usage: item.usage || "subject" });
+        continue;
+      }
+
+      // 3. If item is a base64 string or data URL
+      let buffer = null;
+      let mimeType = "image/png";
+
+      if (typeof item === "string" && item.startsWith("data:image/")) {
+        const matches = item.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+        if (matches) {
+          mimeType = matches[1];
+          buffer = Buffer.from(matches[2], "base64");
+        }
+      } else if (typeof item === "string" && (item.startsWith("http://") || item.startsWith("https://"))) {
+        // Public URL: Fetch buffer
+        const fetchRes = await fetch(item);
+        if (!fetchRes.ok) throw new Error(`Could not fetch reference image URL: ${item}`);
+        mimeType = fetchRes.headers.get("content-type") || "image/png";
+        buffer = Buffer.from(await fetchRes.arrayBuffer());
+      } else if (typeof item === "string" && fs.existsSync(item)) {
+        // Local file path
+        buffer = fs.readFileSync(item);
+        mimeType = item.endsWith(".jpg") || item.endsWith(".jpeg") ? "image/jpeg" : "image/png";
+      } else if (typeof item === "object" && item.buffer) {
+        buffer = item.buffer;
+        mimeType = item.mimeType || "image/png";
+      }
+
+      if (buffer) {
+        console.log(`[Firefly] Uploading reference image (${buffer.length} bytes, ${mimeType})...`);
+        const id = await this.uploadReferenceImage(buffer, mimeType);
+        resolved.push({
+          id,
+          usage: (typeof item === "object" && item.usage) ? item.usage : "subject"
+        });
+      }
+    }
+
+    return resolved;
+  }
+
+  /**
    * Unified generation supporting both Native Firefly and 3P Partner Models
    */
   async generateImage(params) {
@@ -143,10 +228,14 @@ export class FireflyClient {
       quality = "medium",
       addWatermark = false,
       seed = Math.floor(Math.random() * 900000) + 10000,
+      referenceImages = []
     } = params;
 
     const mapped = MODEL_MAP[modelId] || { type: "native", modelVersion: "image4_standard" };
     const startTime = Date.now();
+
+    // Resolve up to 4 reference blobs
+    const referenceBlobs = await this.resolveReferenceBlobs(referenceImages);
 
     // Resolve sherlockToken for session fingerprint
     let arpSessionId = "eyJzaWQiOiJjMzA5MTUyOS0wMzU2LTQ0Y2YtOTY0My0xOGZmMWUxYjNmZGEiLCJmdHIiOiIyOTBmZjVlMWY5MTg0ZWZmYTliNWE3NGJiOWI5OTkzM18xNzkyOTExMzA0NjgzX19VREY0My1tNF8zMWNrX3d5bTFIaWNITk5vPS01MDYzLXYyX3R0IiwiYXJrIjoiNzExMThlMWIzNTUxZmNkOTkuNDE4Mjg4ODkwNHxyPWFwLXNvdXRoZWFzdC0xfG1ldGE9M3xtZXRhYmdjbHI9dHJhbnNwYXJlbnR8bWV0YWljb25jbHI9JTIzNzU3NTc1fGd1aXRleHRjb2xvcj0lMjMwMDAwMDB8cGs9QkJDQzMxNEMtNDkzNy00Q0NELUIwQTMtRkRGMEYwRjc2MDNDfGF0PTQwfHN1cD0xfHJpZD0yOHxhZz0xMDF8Y2RuX3VybD1odHRwcyUzQSUyRiUyRmFya3MtY2xpZW50LmFkb2JlLmNvbSUyRmNkbiUyRmZjfHN1cmw9aHR0cHMlM0ElMkYlMkZhcmtzLWNsaWVudC5hZG9iZS5jb20lMkZjZG4lMkZmYyUyRmFzc2V0cyUyRnN0eWxlLW1hbmFnZXIiLCJiZnAiOiJhOGUxYThiNS05ZDA0LTQ4ZDAtOTM2My1hMzQwODg3OTY1NjgifQ==";
@@ -183,6 +272,10 @@ export class FireflyClient {
         locale: "en-US",
         promptEnhance: "on"
       };
+
+      if (referenceBlobs.length > 0) {
+        payload.referenceBlobs = referenceBlobs;
+      }
     } else {
       // 2. 3P PARTNER MODELS PIPELINE (Google, OpenAI, FLUX, Runway, Humain)
       targetUrl = "https://firefly-3p.ff.adobe.io/v2/3p-images/generate-async";
@@ -193,7 +286,7 @@ export class FireflyClient {
         seeds: [seed],
         output: { storeInputs: true },
         prompt: prompt,
-        referenceBlobs: [],
+        referenceBlobs: referenceBlobs,
         caiClaimVersion: 2,
         modelSpecificPayload: (aspect === "auto" || !size3p) ? { size: "auto" } : (mapped.modelId === "gemini-flash" ? { parameters: { addWatermark: Boolean(addWatermark) } } : {}),
         modelId: mapped.modelId,
@@ -210,9 +303,9 @@ export class FireflyClient {
       payload.size = (aspect !== "auto" && size3p) ? size3p : { width: 1024, height: 1024 };
     }
 
-    // Submit Request with retry
+    // Submit Request with retry & exponential backoff on 408
     let submitRes;
-    for (let retry = 0; retry < 4; retry++) {
+    for (let retry = 0; retry < 5; retry++) {
       const nonce = crypto.randomBytes(32).toString("hex");
       submitRes = await fetch(targetUrl, {
         method: "POST",
@@ -229,9 +322,10 @@ export class FireflyClient {
         body: JSON.stringify(payload)
       });
 
-      if (submitRes.status === 408) {
-        console.warn(`[Firefly] System under load (408), retrying attempt ${retry + 1}/4 in 2.5s...`);
-        await new Promise(r => setTimeout(r, 2500));
+      if (submitRes.status === 408 || submitRes.status === 429) {
+        const backoffMs = (retry + 1) * 3000;
+        console.warn(`[Firefly] System under load (${submitRes.status}), backing off ${backoffMs}ms (attempt ${retry + 1}/5)...`);
+        await new Promise(r => setTimeout(r, backoffMs));
         continue;
       }
       break;
@@ -250,7 +344,7 @@ export class FireflyClient {
 
     // Poll for Completion
     let attempts = 0;
-    const maxAttempts = 30;
+    const maxAttempts = 35;
     while (attempts < maxAttempts) {
       attempts++;
       await new Promise(r => setTimeout(r, 2000));
