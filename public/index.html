@@ -1,0 +1,1520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firefly API Management</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-page: #f8fafc;
+      --bg-card: #ffffff;
+      --border-color: #e2e8f0;
+      --border-hover: #cbd5e1;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-subtle: #eff6ff;
+      --success: #16a34a;
+      --success-subtle: #f0fdf4;
+      --warning: #d97706;
+      --sidebar-width: 240px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* === SIDEBAR (Inspired by gemini-web2api) === */
+    aside {
+      width: var(--sidebar-width);
+      background: #ffffff;
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 40;
+    }
+
+    .sidebar-brand {
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .brand-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 7px;
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      color: white;
+      font-weight: 700;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(37,99,235,0.2);
+    }
+
+    .brand-name {
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: -0.3px;
+      color: var(--text-primary);
+    }
+
+    .sidebar-menu {
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .menu-item:hover {
+      background: #f1f5f9;
+      color: var(--text-primary);
+    }
+
+    .menu-item.active {
+      background: var(--accent-subtle);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .menu-item svg {
+      width: 17px;
+      height: 17px;
+      stroke-width: 2;
+    }
+
+    .sidebar-footer {
+      padding: 16px 20px;
+      border-top: 1px solid #f1f5f9;
+      font-size: 11.5px;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    /* === MAIN LAYOUT === */
+    main {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    /* === TOPBAR === */
+    header {
+      height: 64px;
+      background: #ffffff;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+    }
+
+    .header-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--success-subtle);
+      color: var(--success);
+      border: 1px solid #bbf7d0;
+    }
+
+    .status-badge .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+    }
+
+    /* === CONTENT AREA === */
+    .content {
+      padding: 24px 32px 48px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* === STATS CARDS ROW === */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 16px 20px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-val {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.5px;
+    }
+
+    .stat-sub {
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+
+    /* === TAB PANELS === */
+    .tab-section {
+      display: none;
+    }
+
+    .tab-section.active {
+      display: block;
+    }
+
+    /* === PLAYGROUND GRID === */
+    .playground-grid {
+      display: grid;
+      grid-template-columns: 460px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+
+    .panel-header {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 18px;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .form-label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    select, textarea, input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: #ffffff;
+      font-size: 13.5px;
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    select:focus, textarea:focus, input[type="text"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
+    }
+
+    textarea {
+      min-height: 105px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    /* Sample Prompt Chips */
+    .prompt-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+      margin-bottom: 4px;
+    }
+
+    .chip-btn {
+      font-size: 11px;
+      font-weight: 500;
+      background: #f1f5f9;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .chip-btn:hover {
+      background: var(--accent-subtle);
+      color: var(--accent);
+      border-color: #bfdbfe;
+    }
+
+    .btn-primary {
+      width: 100%;
+      background: var(--accent);
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 14px;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.15s ease;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-primary:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    /* === CANVAS PREVIEW === */
+    .preview-canvas {
+      min-height: 520px;
+      border: 2px dashed var(--border-color);
+      border-radius: 10px;
+      background: #fafafa;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      padding: 16px;
+    }
+
+    .preview-canvas img {
+      max-width: 100%;
+      max-height: 520px;
+      object-fit: contain;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      display: none;
+    }
+
+    .canvas-actions {
+      display: none;
+      margin-top: 14px;
+      gap: 10px;
+    }
+
+    .canvas-btn {
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: #ffffff;
+      color: var(--text-primary);
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .canvas-btn:hover {
+      background: #f1f5f9;
+    }
+
+    .empty-placeholder {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      text-align: center;
+      max-width: 320px;
+      line-height: 1.5;
+    }
+
+    .spinner {
+      display: none;
+      width: 36px;
+      height: 36px;
+      border: 3px solid rgba(37,99,235,0.15);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 12px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* === TABLES (Inspired by gemini-web2api) === */
+    .clean-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: left;
+    }
+
+    .clean-table th {
+      background: #f8fafc;
+      color: var(--text-secondary);
+      font-weight: 600;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .clean-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #f1f5f9;
+      color: var(--text-primary);
+    }
+
+    .clean-table tr:hover td {
+      background: #fafafa;
+    }
+
+    .badge-cost {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .badge-free {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    /* === CODE BLOCK === */
+    pre {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 16px 20px;
+      border-radius: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12.5px;
+      overflow-x: auto;
+      line-height: 1.6;
+      margin: 12px 0 20px;
+      position: relative;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      background: rgba(255,255,255,0.12);
+      border: none;
+      color: white;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .copy-btn:hover {
+      background: rgba(255,255,255,0.25);
+    }
+
+    .doc-section {
+      margin-bottom: 28px;
+    }
+
+    .doc-section h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .doc-section p {
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+  
+    /* === LOGIN MODAL === */
+    .login-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(5px);
+      z-index: 999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-modal {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 32px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    .login-header {
+      text-align: center;
+      margin-bottom: 22px;
+    }
+    .login-header h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-top: 8px;
+    }
+    .login-header p {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+    .form-group {
+      margin-bottom: 14px;
+    }
+    .form-label {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+      display: block;
+    }
+    .form-control {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-control:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+    }
+    .login-msg {
+      margin-top: 12px;
+      font-size: 12px;
+      text-align: center;
+      display: none;
+      padding: 8px;
+      border-radius: 6px;
+    }
+    .login-msg.error {
+      display: block;
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+    .login-msg.success {
+      display: block;
+      background: #f0fdf4;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+    .key-display-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-top: 8px;
+    }
+    .key-text {
+      flex: 1;
+      font-family: ui-monospace, monospace;
+      font-size: 13px;
+      color: var(--text-primary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .btn-secondary {
+      background: #f1f5f9;
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn-secondary:hover { background: #e2e8f0; }
+    .btn-danger {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn-danger:hover { background: #fca5a5; }
+    .topbar-key-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #f1f5f9;
+      border: 1px solid var(--border-color);
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-family: ui-monospace, monospace;
+      color: var(--text-secondary);
+    }
+    .topbar-key-chip button {
+      background: none;
+      border: none;
+      color: var(--accent);
+      cursor: pointer;
+      font-size: 11.5px;
+      font-weight: 600;
+    }
+    .btn-logout {
+      background: none;
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-logout:hover {
+      background: #f1f5f9;
+      color: #dc2626;
+      border-color: #fca5a5;
+    }
+  </style>
+</head>
+<body>
+  <!-- LOGIN MODAL OVERLAY -->
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-modal">
+      <div class="login-header">
+        <div class="brand-icon" style="margin: 0 auto 8px; width: 38px; height: 38px; font-size: 18px;">F</div>
+        <h2>Firefly API Login</h2>
+        <p>Default credentials: <strong>admin</strong> / <strong>admin</strong></p>
+      </div>
+
+      <form id="loginForm" onsubmit="handleLoginSubmit(event)">
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input type="text" id="loginUsername" class="form-control" value="admin" required autofocus>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" id="loginPassword" class="form-control" value="admin" required>
+        </div>
+        <button type="submit" id="loginBtn" class="btn-primary" style="margin-top: 18px;">
+          Sign In to Dashboard
+        </button>
+        <div id="loginMsg" class="login-msg"></div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- SIDEBAR NAVIGATION -->
+  <aside>
+    <div class="sidebar-brand">
+      <div class="brand-icon">F</div>
+      <div class="brand-name">Firefly API</div>
+    </div>
+
+    <div class="sidebar-menu">
+      <div class="menu-item active" onclick="switchTab('overview')">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+        Overview & Playground
+      </div>
+      <div class="menu-item" onclick="switchTab('models')">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        Models & Quotas
+      </div>
+      <div class="menu-item" onclick="switchTab('features')">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        Features & Capabilities
+      </div>
+      <div class="menu-item" onclick="switchTab('docs')">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        API Documentation
+      </div>
+            <div class="menu-item" onclick="switchTab('security')">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+        Security & API Key
+      </div>
+      <div class="menu-item" onclick="switchTab('setup')">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        Session & VPS Setup
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div>Service: <strong>Port 5055</strong></div>
+      <div>Engine: <strong>Firefly 3P API</strong></div>
+      <div>Watermark: <strong>Enforced False</strong></div>
+    </div>
+  </aside>
+
+  <!-- MAIN VIEW -->
+  <main>
+    <!-- TOPBAR -->
+    <header>
+      <div class="header-title" id="pageTitle">Overview & Playground</div>
+      <div class="header-actions">
+                <div class="topbar-key-chip">
+          <span>Key: <strong id="topbarKeySnippet">ff_live_••••••</strong></span>
+          <button type="button" onclick="copyMasterKey()">Copy</button>
+        </div>
+        <button type="button" class="btn-logout" onclick="handleLogout()">Logout</button>
+        <div class="status-badge" id="serviceBadge">
+          <span class="dot"></span>
+          <span id="serviceBadgeText">Service Running</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="content">
+      <!-- STATS METRICS -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Generative Credits</div>
+          <div class="stat-val" id="creditsVal">2,369 / 4,000</div>
+          <div class="stat-sub" id="creditsSub">1,631 consumed this period</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">Token Expiration</div>
+          <div class="stat-val" id="tokenHoursVal">23h left</div>
+          <div class="stat-sub" id="tokenSub">Auto-refreshed via extension</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">Standard Daily Quota</div>
+          <div class="stat-val" style="color: var(--success);">10,000 / day</div>
+          <div class="stat-sub">Free Fair Use (Firefly 3 & 4)</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">API Port</div>
+          <div class="stat-val">5055</div>
+          <div class="stat-sub">Local & LAN Active</div>
+        </div>
+      </div>
+
+      <!-- TAB 1: OVERVIEW & PLAYGROUND -->
+      <section id="tab-overview" class="tab-section active">
+        <div class="playground-grid">
+          
+          <!-- SETTINGS PANEL -->
+          <div class="panel">
+            <div class="panel-header">General Settings</div>
+
+            <div class="form-group">
+              <label class="form-label">Model</label>
+              <select id="modelSelect">
+                <!-- Populated dynamically with clean names (no emojis) -->
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Aspect Ratio</label>
+              <select id="aspectSelect">
+                <option value="auto" selected>Auto (Model Default)</option>
+                <option value="2:3">Tall (2:3)</option>
+                <option value="3:4">Portrait (3:4)</option>
+                <option value="1:1">Square (1:1)</option>
+                <option value="16:9">Landscape (16:9)</option>
+                <option value="9:16">Vertical / Story (9:16)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Quality</label>
+              <select id="qualitySelect">
+                <option value="medium" selected>Medium (Standard / Fast - 5 cr)</option>
+                <option value="high">High (Maximum Detail - 15 cr)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Resolution</label>
+              <select id="resolutionSelect">
+                <option value="1K" selected>1K (Fast & Standard)</option>
+                <option value="2K">2K (High-Definition)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <div class="form-label-row">
+                <span class="form-label" style="margin-bottom:0;">Prompt</span>
+                <span style="font-size: 11px; color: var(--text-muted);">Watermark: False</span>
+              </div>
+              <textarea id="promptInput" placeholder="Describe the image you want to generate in detail...">official anime news poster, Chainsaw Man Reze arc cinematic anime visual, Denji and Reze standing against dramatic illuminated city, sleek news layout, bold clean typography reading ANNOUNCEMENT, vibrant 2D anime art style, studio MAPPA aesthetic, high contrast, 3:4 vertical</textarea>
+              
+              <div class="prompt-chips">
+                <span style="font-size: 11px; color: var(--text-muted); align-self: center; margin-right: 2px;">Quick Test:</span>
+                <button type="button" class="chip-btn" onclick="setPrompt(1)">Chainsaw Man Announcement</button>
+                <button type="button" class="chip-btn" onclick="setPrompt(2)">Solo Leveling Season 2</button>
+                <button type="button" class="chip-btn" onclick="setPrompt(3)">Cyberpunk Neo Tokyo</button>
+                <button type="button" class="chip-btn" onclick="setPrompt(4)">Gojo Satoru Awakening</button>
+              </div>
+            </div>
+
+            <button id="genBtn" class="btn-primary" style="margin-top: 14px;">
+              <span>Generate Image</span>
+            </button>
+            <div id="genStatus" style="font-size: 12px; color: var(--text-secondary); margin-top: 10px;"></div>
+          </div>
+
+          <!-- RENDER CANVAS -->
+          <div class="panel">
+            <div class="panel-header" style="display:flex; justify-content:space-between;">
+              <span>Rendered Visual</span>
+              <span id="latencySpan" style="font-size: 12px; font-weight: normal; color: var(--text-muted);"></span>
+            </div>
+            <div class="preview-canvas">
+              <div id="spinner" class="spinner"></div>
+              <div id="emptyText" class="empty-placeholder">
+                Click <strong>Generate Image</strong> to run the prefilled anime test prompt instantly.
+              </div>
+              <img id="renderedImg" alt="Generated Visual">
+              
+              <div class="canvas-actions" id="canvasActions">
+                <a id="downloadLink" class="canvas-btn" target="_blank" download="firefly_generation.png">
+                  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                  Download PNG
+                </a>
+                <a id="openTabLink" class="canvas-btn" target="_blank">
+                  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                  Open Full Resolution
+                </a>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- TAB 2: MODELS & QUOTAS -->
+      <section id="tab-models" class="tab-section">
+        <div class="panel">
+          <div class="panel-header">Authorized Model Catalog & Live Quotas</div>
+          <table class="clean-table">
+            <thead>
+              <tr>
+                <th>Model Name</th>
+                <th>Provider</th>
+                <th>Resolution</th>
+                <th>Credit Cost</th>
+                <th>Monthly Capacity (4,000 Quota)</th>
+              </tr>
+            </thead>
+            <tbody id="modelTableBody">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 3: FEATURES & CAPABILITIES -->
+      <section id="tab-features" class="tab-section">
+        <div class="panel">
+          <div class="panel-header">Microservice Features & Capabilities</div>
+          
+          <div class="doc-section">
+            <h3>Watermark-Free Commercial Output</h3>
+            <p>Every single generation request issued through this microservice enforces <code>addWatermark: false</code> inside the Adobe 3P parameters payload. The resulting images are clean, commercial-ready, and free of any Adobe Firefly corner badges or metadata overlays.</p>
+          </div>
+
+          <div class="doc-section">
+            <h3>Multi-Provider Architecture</h3>
+            <p>Access 20 leading frontier generation models through a single standardized REST API interface:</p>
+            <ul style="margin-left: 20px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.8; margin-top: 6px;">
+              <li><strong>Google Gemini / Nano Banana Series:</strong> Gemini 3.1 (Nano Banana 2), Nano Banana 2.1, and Gemini 3 (Nano Banana Pro) with prompt adherence and typography.</li>
+              <li><strong>OpenAI GPT Image Series:</strong> GPT Image 2.5 Sunburst (ultra-low cost: 5 credits), GPT Image 2.5 Flare, GPT Image 2, GPT Image 1.5, and GPT Image 1.</li>
+              <li><strong>Black Forest Labs (FLUX):</strong> FLUX.2 [pro], FLUX1.1 [pro] Ultra Raw, FLUX1.1 [pro], FLUX.1 Kontext [max], and Kontext [pro].</li>
+              <li><strong>Adobe Firefly Native:</strong> Firefly Image 4 (Free 10,000/day), Firefly Image 3 (Free), Firefly Image 4 Ultra, and Firefly Image 5 Preview.</li>
+              <li><strong>Cinematic & Photoreal:</strong> Runway Gen-4 Image and HUMAIN Image 1.</li>
+            </ul>
+          </div>
+
+          <div class="doc-section">
+            <h3>Automated Local Archiving & Cloud CDN</h3>
+            <p>Generated visuals are automatically polled from Adobe's worker queues (~8 to 12s), downloaded as lossless PNGs into <code>./output/</code>, and served directly by the Express server under <code>/output/*.png</code>. The API also returns Adobe's direct presigned S3 CDN URL for cloud pipelines.</p>
+          </div>
+
+          <div class="doc-section">
+            <h3>Zero-Friction Session Management</h3>
+            <p>Using the companion Chrome extension, clicking <strong>Update & Sync Session</strong> while on <code>firefly.adobe.com</code> captures your active 24-hour Bearer token and sherlock session fingerprint and syncs them to port 5055. No manual token copying or credential entry required.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: API DOCUMENTATION -->
+      <section id="tab-docs" class="tab-section">
+        <div class="panel">
+          <div class="panel-header">API Reference & Integration Guide</div>
+
+          <div class="doc-section">
+            <h3>1. Generate Image Endpoint</h3>
+            <p><code>POST http://localhost:5055/v1/images/generate</code></p>
+            <pre><code>curl -X POST http://localhost:5055/v1/images/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "official anime news poster, Chainsaw Man Reze arc cinematic visual, 3:4 vertical",
+    "modelId": "nano-banana-3",
+    "aspect": "3:4"
+  }'<button class="copy-btn" onclick="copyText(this)">Copy</button></code></pre>
+            
+            <p><strong>Response format:</strong></p>
+            <pre><code>{
+  "success": true,
+  "prompt": "official anime news poster...",
+  "aspect": "3:4",
+  "imageUrl": "/output/firefly_nano-banana-3_1792901234567.png",
+  "presignedUrl": "https://adobefirefly-stage-us-west-2-renditions...",
+  "imagePath": "/Users/ayaz/tools/firefly-api/output/firefly_nano-banana-3_1792901234567.png",
+  "latencyMs": 9410
+}<button class="copy-btn" onclick="copyText(this)">Copy</button></code></pre>
+          </div>
+
+          <div class="doc-section">
+            <h3>2. Check Credit Balance</h3>
+            <p><code>GET http://localhost:5055/v1/credits/balance</code></p>
+            <pre><code>curl http://localhost:5055/v1/credits/balance<button class="copy-btn" onclick="copyText(this)">Copy</button></code></pre>
+          </div>
+
+          <div class="doc-section">
+            <h3>3. Node.js SDK Integration (ytservice)</h3>
+            <pre><code>import { FireflyClient } from "/Users/ayaz/tools/firefly-api/src/client.js";
+
+const client = new FireflyClient();
+
+// Generate anime news card
+const result = await client.generateImage({
+  prompt: "official anime news poster, Solo Leveling Season 2, bold news typography",
+  modelId: "nano-banana-3",
+  aspect: "3:4",
+  addWatermark: false
+});
+
+console.log("Saved local PNG:", result.filePath);
+console.log("Direct Adobe CDN:", result.presignedUrl);<button class="copy-btn" onclick="copyText(this)">Copy</button></code></pre>
+          </div>
+        </div>
+      </section>
+
+      
+      <!-- TAB: SECURITY & API KEY -->
+      <section id="tab-security" class="tab-section">
+        <div class="panel" style="margin-bottom: 20px;">
+          <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Master API Key (Single Key Strategy)</span>
+            <span class="badge-free" style="font-size: 11px;">Active</span>
+          </div>
+          <div class="doc-section">
+            <p>Use this master key in all your API calls via header: <code>x-api-key: YOUR_KEY</code> or <code>Authorization: Bearer YOUR_KEY</code>. It gives full authorized access to image generation, credit balance, and session sync.</p>
+            
+            <div class="key-display-box">
+              <span id="masterKeyText" class="key-text">ff_live_••••••••••••••••••••••••••••••••</span>
+              <button type="button" class="btn-secondary" onclick="toggleKeyVisibility()" id="toggleKeyBtn">👁️ Show</button>
+              <button type="button" class="btn-secondary" onclick="copyMasterKey()" id="copyKeyBtn">📋 Copy</button>
+              <button type="button" class="btn-danger" onclick="resetApiKeyPrompt()">⚡ Reset / Rotate Key</button>
+            </div>
+            <div id="keyNotice" style="font-size: 12px; margin-top: 8px; color: var(--text-muted);">
+              Clicking <strong>Reset / Rotate Key</strong> generates a new key and immediately overwrites the old one.
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">Admin Password Management</div>
+          <div class="doc-section">
+            <p>Update your dashboard login password. Default initial credentials are <code>admin</code> / <code>admin</code>.</p>
+            
+            <form onsubmit="handlePasswordChange(event)" style="max-width: 420px; margin-top: 16px;">
+              <div class="form-group">
+                <label class="form-label">Current Password</label>
+                <input type="password" id="currPassword" class="form-control" placeholder="••••••••" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">New Password (min 4 characters)</label>
+                <input type="password" id="newPassword" class="form-control" placeholder="••••••••" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Confirm New Password</label>
+                <input type="password" id="confirmPassword" class="form-control" placeholder="••••••••" required>
+              </div>
+              <button type="submit" id="savePasswordBtn" class="btn-primary" style="width: auto; padding: 9px 20px;">
+                Update Password
+              </button>
+              <div id="passwordMsg" class="login-msg" style="text-align: left;"></div>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: SESSION & VPS SETUP -->
+      <section id="tab-setup" class="tab-section">
+        <div class="panel">
+          <div class="panel-header">Session & Deployment Setup</div>
+
+          <div class="doc-section">
+            <h3>Companion Extension 1-Click Sync</h3>
+            <p>Your Chrome extension is located in <code>/Users/ayaz/tools/firefly-api/extension</code>. When unpacked in Chrome, navigate to <code>https://firefly.adobe.com</code> and click <strong>Update & Sync Session</strong>. It pushes the active Bearer token directly to this dashboard.</p>
+          </div>
+
+          <div class="doc-section">
+            <h3>Docker Compose Deployment (VPS)</h3>
+            <pre><code># Start the container in daemon mode on your Linux VPS
+docker compose up -d
+
+# Check live logs
+docker compose logs -f<button class="copy-btn" onclick="copyText(this)">Copy</button></code></pre>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  
+  <script>
+    // --- AUTHENTICATION & SESSION STATE ---
+    let activeApiKey = localStorage.getItem("firefly_key") || "";
+    let activeSessionToken = localStorage.getItem("firefly_sess") || "";
+    let isKeyVisible = false;
+
+    function getAuthHeaders() {
+      const headers = { "Content-Type": "application/json" };
+      if (activeSessionToken) headers["x-session-token"] = activeSessionToken;
+      if (activeApiKey) headers["x-api-key"] = activeApiKey;
+      return headers;
+    }
+
+    function showLoginModal(msg = "", isError = false) {
+      const overlay = document.getElementById("loginOverlay");
+      const loginMsg = document.getElementById("loginMsg");
+      overlay.style.display = "flex";
+      if (msg) {
+        loginMsg.className = "login-msg " + (isError ? "error" : "success");
+        loginMsg.textContent = msg;
+      } else {
+        loginMsg.style.display = "none";
+      }
+    }
+
+    function hideLoginModal() {
+      document.getElementById("loginOverlay").style.display = "none";
+    }
+
+    async function checkAuth() {
+      if (!activeSessionToken && !activeApiKey) {
+        showLoginModal();
+        return false;
+      }
+
+      try {
+        const res = await fetch("/api/auth/check", { headers: getAuthHeaders() });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.apiKey) {
+            setKey(data.apiKey);
+          }
+          hideLoginModal();
+          return true;
+        } else {
+          showLoginModal("Session expired. Please log in.", true);
+          return false;
+        }
+      } catch (err) {
+        console.warn("Auth check network error:", err.message);
+        return false;
+      }
+    }
+
+    async function handleLoginSubmit(e) {
+      e.preventDefault();
+      const u = document.getElementById("loginUsername").value.trim();
+      const p = document.getElementById("loginPassword").value.trim();
+      const loginMsg = document.getElementById("loginMsg");
+      const btn = document.getElementById("loginBtn");
+
+      btn.disabled = true;
+      btn.textContent = "Signing In...";
+
+      try {
+        const res = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: u, password: p })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          activeSessionToken = data.sessionToken;
+          localStorage.setItem("firefly_sess", activeSessionToken);
+          if (data.apiKey) {
+            setKey(data.apiKey);
+          }
+          hideLoginModal();
+          fetchStatus();
+          fetchBalance();
+        } else {
+          loginMsg.className = "login-msg error";
+          loginMsg.textContent = data.error || "Invalid username or password";
+        }
+      } catch (err) {
+        loginMsg.className = "login-msg error";
+        loginMsg.textContent = "Server unreachable: " + err.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Sign In to Dashboard";
+      }
+    }
+
+    async function handleLogout() {
+      if (confirm("Are you sure you want to log out of the dashboard?")) {
+        try {
+          await fetch("/api/logout", {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ sessionToken: activeSessionToken })
+          });
+        } catch (e) {}
+        activeSessionToken = "";
+        localStorage.removeItem("firefly_sess");
+        showLoginModal("You have been logged out.");
+      }
+    }
+
+    // --- MASTER API KEY MANAGEMENT ---
+    function setKey(key) {
+      activeApiKey = key;
+      localStorage.setItem("firefly_key", key);
+      updateKeyUI();
+    }
+
+    function updateKeyUI() {
+      const topbarSnippet = document.getElementById("topbarKeySnippet");
+      const masterKeyText = document.getElementById("masterKeyText");
+      if (!activeApiKey) {
+        if (topbarSnippet) topbarSnippet.textContent = "No key";
+        if (masterKeyText) masterKeyText.textContent = "No key generated";
+        return;
+      }
+
+      if (topbarSnippet) {
+        topbarSnippet.textContent = activeApiKey.slice(0, 10) + "•••" + activeApiKey.slice(-4);
+      }
+
+      if (masterKeyText) {
+        if (isKeyVisible) {
+          masterKeyText.textContent = activeApiKey;
+        } else {
+          masterKeyText.textContent = activeApiKey.slice(0, 8) + "••••••••••••••••••••••••••••••••";
+        }
+      }
+    }
+
+    function toggleKeyVisibility() {
+      isKeyVisible = !isKeyVisible;
+      const btn = document.getElementById("toggleKeyBtn");
+      if (btn) btn.textContent = isKeyVisible ? "🙈 Hide" : "👁️ Show";
+      updateKeyUI();
+    }
+
+    function copyMasterKey() {
+      if (!activeApiKey) return;
+      navigator.clipboard.writeText(activeApiKey);
+      const topbarBtn = document.querySelector(".topbar-key-chip button");
+      const panelBtn = document.getElementById("copyKeyBtn");
+      if (topbarBtn) topbarBtn.textContent = "Copied!";
+      if (panelBtn) panelBtn.textContent = "✓ Copied!";
+      setTimeout(() => {
+        if (topbarBtn) topbarBtn.textContent = "Copy";
+        if (panelBtn) panelBtn.textContent = "📋 Copy";
+      }, 1500);
+    }
+
+    async function resetApiKeyPrompt() {
+      const confirmed = confirm("⚠️ Are you sure you want to reset your Master API Key?\n\nThis will immediately overwrite the existing key. Any applications (like ytservice or your extension) must be updated with the new key.");
+      if (!confirmed) return;
+
+      try {
+        const res = await fetch("/api/key/reset", {
+          method: "POST",
+          headers: getAuthHeaders()
+        });
+        const data = await res.json();
+        if (res.ok && data.apiKey) {
+          setKey(data.apiKey);
+          const notice = document.getElementById("keyNotice");
+          if (notice) {
+            notice.innerHTML = "<span style='color:var(--success);font-weight:600;'>⚡ Master API Key reset successfully! Copy your new key above.</span>";
+            setTimeout(() => {
+              notice.innerHTML = "Clicking <strong>Reset / Rotate Key</strong> generates a new key and immediately overwrites the old one.";
+            }, 5000);
+          }
+        } else {
+          alert("Failed to reset key: " + (data.error || "Unknown error"));
+        }
+      } catch (err) {
+        alert("Error resetting key: " + err.message);
+      }
+    }
+
+    // --- ADMIN PASSWORD MANAGEMENT ---
+    async function handlePasswordChange(e) {
+      e.preventDefault();
+      const curr = document.getElementById("currPassword").value;
+      const newP = document.getElementById("newPassword").value;
+      const conf = document.getElementById("confirmPassword").value;
+      const msg = document.getElementById("passwordMsg");
+      const btn = document.getElementById("savePasswordBtn");
+
+      if (newP !== conf) {
+        msg.className = "login-msg error";
+        msg.textContent = "New password and confirmation do not match.";
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Updating...";
+
+      try {
+        const res = await fetch("/api/admin/password", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ currentPassword: curr, newPassword: newP })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          msg.className = "login-msg success";
+          msg.textContent = "✓ Admin password updated successfully!";
+          document.getElementById("currPassword").value = "";
+          document.getElementById("newPassword").value = "";
+          document.getElementById("confirmPassword").value = "";
+        } else {
+          msg.className = "login-msg error";
+          msg.textContent = data.error || "Failed to update password";
+        }
+      } catch (err) {
+        msg.className = "login-msg error";
+        msg.textContent = "Network error: " + err.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Update Password";
+      }
+    }
+
+    // --- TAB SWITCHING ---
+    function switchTab(tabId) {
+      document.querySelectorAll(".menu-item").forEach(item => item.classList.remove("active"));
+      document.querySelectorAll(".tab-section").forEach(sec => sec.classList.remove("active"));
+
+      const activeMenu = Array.from(document.querySelectorAll(".menu-item")).find(item => item.getAttribute("onclick")?.includes(tabId));
+      if (activeMenu) activeMenu.classList.add("active");
+
+      const targetSection = document.getElementById(`tab-${tabId}`);
+      if (targetSection) targetSection.classList.add("active");
+
+      const titles = {
+        overview: "Overview & Playground",
+        models: "Models & Quotas",
+        features: "Features & Capabilities",
+        docs: "API Documentation",
+        security: "Security & Master API Key",
+        setup: "Session & VPS Setup"
+      };
+      document.getElementById("pageTitle").textContent = titles[tabId] || "Overview";
+    }
+
+    // Quick Prompt Chips
+    const SAMPLE_PROMPTS = {
+      1: "official anime news poster, Chainsaw Man Reze arc cinematic anime visual, Denji and Reze standing against dramatic illuminated city, sleek news layout, bold clean typography reading ANNOUNCEMENT, vibrant 2D anime art style, studio MAPPA aesthetic, high contrast, 3:4 vertical",
+      2: "official anime news card, Solo Leveling Season 2 Arise from the Shadow announcement, Sung Jinwoo with glowing blue eyes dual daggers surrounded by Igris and shadow army, red BREAKING NEWS banner, chiseled blue ice logo, crisp sharp 4K anime visual, 3:4 vertical",
+      3: "cinematic anime concept art, futuristic Neo Tokyo street at midnight, rainy reflection with neon holographic kanji billboards, lone wanderer with glowing umbrella, aesthetic Makoto Shinkai lighting, high contrast, 3:4 vertical",
+      4: "dramatic anime announcement poster, Jujutsu Kaisen Gojo Satoru awakening scene, hollow purple celestial orb glowing in hands, floating high in blue sky, blood on temple, supreme typography, MAPPA studio key art, 3:4 vertical"
+    };
+
+    function setPrompt(id) {
+      const p = SAMPLE_PROMPTS[id];
+      if (p) {
+        document.getElementById("promptInput").value = p;
+      }
+    }
+
+    function copyText(btn) {
+      const code = btn.parentElement.querySelector("code").innerText;
+      navigator.clipboard.writeText(code);
+      btn.textContent = "Copied!";
+      setTimeout(() => btn.textContent = "Copy", 1500);
+    }
+
+    // Load Models
+    async function loadModels() {
+      try {
+        const res = await fetch("/v1/models");
+        const models = await res.json();
+        
+        const select = document.getElementById("modelSelect");
+        select.innerHTML = "";
+
+        const tbody = document.getElementById("modelTableBody");
+        tbody.innerHTML = "";
+
+        const groups = {};
+        models.forEach(m => {
+          const g = m.group || "Other Models";
+          if (!groups[g]) groups[g] = [];
+          groups[g].push(m);
+
+          // Populate Table
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td><strong>${m.name}</strong></td>
+            <td style="color:var(--text-secondary);">${m.group}</td>
+            <td>${m.resolution || "1K / 2K"}</td>
+            <td>${m.free ? '<span class="badge-free">FREE (0 credits)</span>' : `<span class="badge-cost">${m.cost} credits</span>`}</td>
+            <td style="color:var(--text-muted);">${m.free ? '10,000 / day (Fair Use)' : Math.floor(4000 / m.cost).toLocaleString() + ' images/mo'}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        for (const [groupName, groupModels] of Object.entries(groups)) {
+          const optgroup = document.createElement("optgroup");
+          optgroup.label = groupName;
+          groupModels.forEach(m => {
+            const opt = document.createElement("option");
+            opt.value = m.id;
+            opt.textContent = `${m.name} — ${m.free ? "FREE" : m.cost + " credits"}`;
+            if (m.id === "gpt-image-2-5-prism") opt.selected = true;
+            optgroup.appendChild(opt);
+          });
+          select.appendChild(optgroup);
+        }
+      } catch (err) {
+        console.error("Failed to load models:", err);
+      }
+    }
+
+    // Fetch Status & Credits
+    async function fetchStatus() {
+      try {
+        const res = await fetch("/api/status");
+        const data = await res.json();
+        
+        if (data.token) {
+          const hours = data.token.remainingHours;
+          document.getElementById("tokenHoursVal").textContent = `${hours}h left`;
+          document.getElementById("tokenSub").textContent = `Valid until ${new Date(data.token.expiresAt).toLocaleTimeString()}`;
+        }
+      } catch (e) {}
+    }
+
+    async function fetchBalance() {
+      try {
+        const res = await fetch("/v1/credits/balance", { headers: getAuthHeaders() });
+        if (res.status === 401) {
+          showLoginModal();
+          return;
+        }
+        const data = await res.json();
+        
+        if (data.available !== undefined) {
+          document.getElementById("creditsVal").textContent = `${data.available.toLocaleString()} / ${data.total.toLocaleString()}`;
+          document.getElementById("creditsSub").textContent = `${data.used.toLocaleString()} consumed this period`;
+        }
+      } catch (e) {}
+    }
+
+    // Playground Generation
+    const genBtn = document.getElementById("genBtn");
+    const promptInput = document.getElementById("promptInput");
+    const modelSelect = document.getElementById("modelSelect");
+    const aspectSelect = document.getElementById("aspectSelect");
+    const qualitySelect = document.getElementById("qualitySelect");
+    const spinner = document.getElementById("spinner");
+    const emptyText = document.getElementById("emptyText");
+    const renderedImg = document.getElementById("renderedImg");
+    const genStatus = document.getElementById("genStatus");
+    const latencySpan = document.getElementById("latencySpan");
+    const canvasActions = document.getElementById("canvasActions");
+    const downloadLink = document.getElementById("downloadLink");
+    const openTabLink = document.getElementById("openTabLink");
+
+    genBtn.addEventListener("click", async () => {
+      const prompt = promptInput.value.trim();
+      if (!prompt) return;
+
+      genBtn.disabled = true;
+      spinner.style.display = "block";
+      emptyText.style.display = "none";
+      renderedImg.style.display = "none";
+      canvasActions.style.display = "none";
+      genStatus.textContent = "Submitting to Adobe Firefly API...";
+      latencySpan.textContent = "";
+
+      try {
+        const res = await fetch("/v1/images/generate", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            prompt,
+            modelId: modelSelect.value,
+            aspect: aspectSelect.value,
+            quality: qualitySelect.value
+          })
+        });
+
+        if (res.status === 401) {
+          showLoginModal("Authentication required to generate images.", true);
+          genStatus.textContent = "Authentication required (401)";
+          emptyText.style.display = "block";
+          return;
+        }
+
+        const result = await res.json();
+        if (result.success && result.imageUrl) {
+          renderedImg.src = result.imageUrl;
+          renderedImg.style.display = "block";
+          canvasActions.style.display = "inline-flex";
+          downloadLink.href = result.imageUrl;
+          openTabLink.href = result.imageUrl;
+          genStatus.textContent = `Completed in ${(result.latencyMs / 1000).toFixed(1)}s (Watermark: None)`;
+          latencySpan.textContent = `${(result.latencyMs / 1000).toFixed(1)}s`;
+          fetchBalance();
+        } else {
+          genStatus.textContent = `Error: ${result.error || "Generation failed"}`;
+          emptyText.style.display = "block";
+        }
+      } catch (err) {
+        genStatus.textContent = `Error: ${err.message}`;
+        emptyText.style.display = "block";
+      } finally {
+        spinner.style.display = "none";
+        genBtn.disabled = false;
+      }
+    });
+
+    // Boot
+    (async () => {
+      loadModels();
+      fetchStatus();
+      const isAuthed = await checkAuth();
+      if (isAuthed) {
+        fetchBalance();
+      }
+      setInterval(fetchStatus, 30000);
+    })();
+  </script>
+
+</body>
+</html>

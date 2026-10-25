@@ -1,0 +1,25 @@
+{
+  "name": "firefly-api",
+  "version": "1.0.0",
+  "description": "Standalone Firefly 3P API, Headless Session Daemon & Dashboard Service",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node test/test.js"
+  },
+  "keywords": [
+    "firefly",
+    "adobe",
+    "nano-banana-3",
+    "gemini-flash"
+  ],
+  "author": "Ayaz",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
+    "playwright": "^1.64.1"
+  }
+}

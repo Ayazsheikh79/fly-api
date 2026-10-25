@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  firefly-api:
+    build: .
+    container_name: firefly-api
+    restart: unless-stopped
+    ports:
+      - "5055:5055"
+    environment:
+      - PORT=5055
+      - NODE_ENV=production
+      - DATA_DIR=/app/data
+    volumes:
+      - ./data:/app/data
+    ipc: host
