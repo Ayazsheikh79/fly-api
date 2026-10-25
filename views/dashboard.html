@@ -934,61 +934,148 @@
         </div>
       </section>
 
-      <!-- TAB 4: API DOCUMENTATION -->
+            <!-- TAB 4: API DOCUMENTATION -->
       <section id="tab-docs" class="tab-section">
         <div class="panel">
-          <div class="panel-header">API Reference & Integration Guide</div>
+          <div class="panel-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>API Reference & Integration Guide</span>
+            <span class="badge-free" style="font-size: 11px;">REST v1</span>
+          </div>
 
+          <!-- Auth info -->
           <div class="doc-section">
-            <h3>1. Generate Image Endpoint</h3>
-            <p><code>POST http://localhost:5055/v1/images/generate</code></p>
+            <h3>Authentication</h3>
+            <p>All programmatic endpoints require authentication via header:</p>
+            <pre><code>x-api-key: YOUR_MASTER_KEY</code></pre>
+            <p>Or alternatively: <code>Authorization: Bearer YOUR_MASTER_KEY</code></p>
+          </div>
+
+          <!-- 1. Generate Image -->
+          <div class="doc-section">
+            <h3>1. Generate Image (Default: GPT Sunburst, 5 cr)</h3>
+            <p><code>POST /v1/images/generate</code></p>
+            <p>Generates an image via the serial execution queue (concurrency = 1, 5s cooldown).</p>
             <pre><code>curl -X POST http://localhost:5055/v1/images/generate \
   -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_MASTER_KEY" \
   -d '{
-    "prompt": "official anime news poster, Chainsaw Man Reze arc cinematic visual, 3:4 vertical",
-    "modelId": "nano-banana-3",
-    "aspect": "3:4"
+    "prompt": "futuristic robotic samurai in neon rain, cinematic lighting, 8k",
+    "modelId": "gpt-image-2-5-prism",
+    "aspect": "3:4",
+    "quality": "medium"
   }'<button class="copy-btn" onclick="copyText(this)">Copy</button></code></pre>
             
-            <p><strong>Response format:</strong></p>
+            <p><strong>Response format (HTTP 200):</strong></p>
             <pre><code>{
   "success": true,
-  "prompt": "official anime news poster...",
+  "prompt": "futuristic robotic samurai in neon rain...",
   "aspect": "3:4",
-  "imageUrl": "/output/firefly_nano-banana-3_1792901234567.png",
-  "presignedUrl": "https://adobefirefly-stage-us-west-2-renditions...",
-  "imagePath": "/Users/ayaz/tools/firefly-api/output/firefly_nano-banana-3_1792901234567.png",
-  "latencyMs": 9410
+  "imageUrl": "/output/firefly_gpt-image-2.5-prism_1792939463396.png",
+  "presignedUrl": "https://pre-signed-firefly-prod.s3-accelerate.amazonaws.com/images/...",
+  "imagePath": "/app/data/output/firefly_gpt-image-2.5-prism_1792939463396.png",
+  "model": "gpt-image/gpt-image-2.5-prism",
+  "referencesAttached": 0,
+  "latencyMs": 20253
 }<button class="copy-btn" onclick="copyText(this)">Copy</button></code></pre>
           </div>
 
+          <!-- 2. Reference Image Upload & Generation -->
           <div class="doc-section">
-            <h3>2. Check Credit Balance</h3>
-            <p><code>GET http://localhost:5055/v1/credits/balance</code></p>
-            <pre><code>curl http://localhost:5055/v1/credits/balance<button class="copy-btn" onclick="copyText(this)">Copy</button></code></pre>
+            <h3>2. Reference Image Upload & Multi-Reference Composition (Max 4)</h3>
+            <p><code>POST /v1/storage/upload</code></p>
+            <p>Upload any base64 image or data URI to Adobe storage cluster and receive an asset ID:</p>
+            <pre><code>curl -X POST http://localhost:5055/v1/storage/upload \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_MASTER_KEY" \
+  -d '{
+    "image": "data:image/png;base64,iVBORw0KGgo...",
+    "mimeType": "image/png"
+  }'<button class="copy-btn" onclick="copyText(this)">Copy</button></code></pre>
+
+            <p>Attach up to 4 reference images directly in <code>/v1/images/generate</code> (by Asset ID, local file path, URL, or Base64):</p>
+            <pre><code>curl -X POST http://localhost:5055/v1/images/generate \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_MASTER_KEY" \
+  -d '{
+    "prompt": "futuristic crystal flower hologram in dark void",
+    "modelId": "clio-v4-standard",
+    "referenceImages": [
+      { "id": "95e1a214-0fc2-4f7b-bd65-102dd56a9785", "usage": "subject" }
+    ]
+  }'<button class="copy-btn" onclick="copyText(this)">Copy</button></code></pre>
           </div>
 
+          <!-- 3. Balance -->
           <div class="doc-section">
-            <h3>3. Node.js SDK Integration (ytservice)</h3>
-            <pre><code>import { FireflyClient } from "/Users/ayaz/tools/firefly-api/src/client.js";
+            <h3>3. Check Credit Balance</h3>
+            <p><code>GET /v1/credits/balance</code></p>
+            <pre><code>curl http://localhost:5055/v1/credits/balance \
+  -H "x-api-key: YOUR_MASTER_KEY"<button class="copy-btn" onclick="copyText(this)">Copy</button></code></pre>
+          </div>
 
-const client = new FireflyClient();
+          <!-- 4. Health & Queue Status -->
+          <div class="doc-section">
+            <h3>4. Service Status & Queue Health (Public)</h3>
+            <p><code>GET /api/status</code></p>
+            <pre><code>curl http://localhost:5055/api/status<button class="copy-btn" onclick="copyText(this)">Copy</button></code></pre>
+          </div>
 
-// Generate anime news card
-const result = await client.generateImage({
-  prompt: "official anime news poster, Solo Leveling Season 2, bold news typography",
-  modelId: "nano-banana-3",
-  aspect: "3:4",
-  addWatermark: false
+          <!-- 5. Node.js SDK -->
+          <div class="doc-section">
+            <h3>5. Official Node.js SDK</h3>
+            <pre><code>import { Firefly } from "./sdk/index.js";
+
+const firefly = new Firefly({
+  baseUrl: "http://localhost:5055",
+  apiKey: "YOUR_MASTER_KEY"
 });
 
-console.log("Saved local PNG:", result.filePath);
-console.log("Direct Adobe CDN:", result.presignedUrl);<button class="copy-btn" onclick="copyText(this)">Copy</button></code></pre>
+// Generate image
+const result = await firefly.generate({
+  prompt: "cyberpunk detective in rainy alleyway",
+  aspect: "3:4"
+});
+console.log("Local image URL:", result.imageUrl);<button class="copy-btn" onclick="copyText(this)">Copy</button></code></pre>
+          </div>
+
+          <!-- 6. Python SDK -->
+          <div class="doc-section">
+            <h3>6. Official Python SDK</h3>
+            <pre><code>from sdk.firefly import Firefly
+
+firefly = Firefly(
+    base_url="http://localhost:5055",
+    api_key="YOUR_MASTER_KEY"
+)
+
+result = firefly.generate(
+    prompt="futuristic hovercar over cyberpunk city",
+    aspect="16:9",
+    model_id="clio-v4-standard" # Free 0 cr
+)
+print("Image URL:", result["imageUrl"])<button class="copy-btn" onclick="copyText(this)">Copy</button></code></pre>
+          </div>
+
+          <!-- 7. MCP Configuration -->
+          <div class="doc-section">
+            <h3>7. Model Context Protocol (MCP) for AI Agents</h3>
+            <p>Connect your service directly to Antigravity, Claude Desktop, or Cursor via STDIO:</p>
+            <pre><code>{
+  "mcpServers": {
+    "firefly": {
+      "command": "node",
+      "args": ["/home/app/fly-api/mcp/server.js"],
+      "env": {
+        "FIREFLY_API_URL": "http://localhost:5055",
+        "FIREFLY_API_KEY": "YOUR_MASTER_KEY"
+      }
+    }
+  }
+}<button class="copy-btn" onclick="copyText(this)">Copy</button></code></pre>
           </div>
         </div>
       </section>
 
-      
       <!-- TAB: SECURITY & API KEY -->
       <section id="tab-security" class="tab-section">
         <div class="panel" style="margin-bottom: 20px;">
