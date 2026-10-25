@@ -1146,13 +1146,11 @@ docker compose logs -f<button class="copy-btn" onclick="copyText(this)">Copy</bu
     }
 
     async function handleLogout() {
-      if (confirm("Are you sure you want to log out of the dashboard?")) {
-        try {
-          await fetch("/api/logout", { method: "POST" });
-        } catch (e) {}
-        localStorage.removeItem("firefly_sess");
-        window.location.href = "/login";
-      }
+      try {
+        await fetch("/api/logout", { method: "POST" });
+      } catch (e) {}
+      localStorage.removeItem("firefly_sess");
+      window.location.href = "/login";
     }
 
     // --- MASTER API KEY MANAGEMENT ---
