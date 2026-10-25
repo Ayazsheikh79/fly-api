@@ -6,6 +6,13 @@ import { FireflyClient } from "./client.js";
 import { FireflyDaemon } from "./daemon.js";
 import { configManager, resolveDataPath, OUTPUT_DIR, ROOT_DIR } from "./config.js";
 import { scheduleDailyCleanup } from "./cleanup.js";
+import {
+  getClientIp,
+  checkLoginRateLimit,
+  recordFailedLogin,
+  recordSuccessfulLogin,
+  clearAllLockouts
+} from "./security.js";
 
 const PORT = process.env.PORT || 5055;
 
@@ -111,17 +118,30 @@ app.get("/login", (req, res) => {
 });
 
 // -------------------------------------------------------------
-// Auth & Key Management Endpoints
+// Auth & Key Management Endpoints (Brute-Force Protected)
 // -------------------------------------------------------------
 
-// Login endpoint: verifies admin and sets HttpOnly cookie
-app.post("/api/login", (req, res) => {
+// Login endpoint with IP rate-limiting & 5-strike lockout
+app.post("/api/login", async (req, res) => {
+  const clientIp = getClientIp(req);
+
+  // 1. Check rate limit & lockout
+  const rateLimit = checkLoginRateLimit(clientIp);
+  if (!rateLimit.allowed) {
+    return res.status(429).json({
+      error: rateLimit.error,
+      remainingSec: rateLimit.remainingSec
+    });
+  }
+
   const { username, password } = req.body;
   if (!username || !password) {
     return res.status(400).json({ error: "Username and password required" });
   }
 
+  // 2. Verify Credentials
   if (configManager.verifyAdmin(username, password)) {
+    recordSuccessfulLogin(clientIp);
     const sessionToken = configManager.createSession();
     res.setHeader("Set-Cookie", `ff_sess=${sessionToken}; Path=/; HttpOnly; SameSite=Lax`);
     return res.json({
@@ -132,6 +152,8 @@ app.post("/api/login", (req, res) => {
     });
   }
 
+  // 3. Record Failed Attempt (includes forced 1s tarpit delay)
+  await recordFailedLogin(clientIp);
   return res.status(401).json({ error: "Invalid username or password" });
 });
 
@@ -155,13 +177,30 @@ app.get("/api/auth/check", requireAuth, (req, res) => {
   });
 });
 
-// Update Admin Password
+// Update Admin Password (Supports Master API Key override without old password)
 app.post("/api/admin/password", requireAuth, (req, res) => {
   const { currentPassword, newPassword } = req.body;
+  const apiKey = req.headers["x-api-key"] || req.headers.authorization;
+  const isMasterKeyAuth = apiKey && configManager.verifyApiKey(apiKey);
+
+  if (isMasterKeyAuth) {
+    // Master API Key acts as a master recovery lifeline!
+    if (!newPassword || newPassword.trim().length < 4) {
+      return res.status(400).json({ success: false, error: "New password must be at least 4 characters long." });
+    }
+    const config = configManager.loadConfig();
+    config.admin.password = newPassword.trim();
+    configManager.saveConfig(config);
+    clearAllLockouts();
+    return res.json({ success: true, message: "Admin password reset successfully via Master Key." });
+  }
+
+  // Otherwise regular session requires current password
   const result = configManager.updateAdminPassword(currentPassword, newPassword);
   if (!result.success) {
     return res.status(400).json(result);
   }
+  clearAllLockouts();
   res.json({ success: true, message: "Admin password updated successfully." });
 });
 
@@ -463,5 +502,6 @@ app.listen(PORT, () => {
   console.log(`👉 http://localhost:${PORT}`);
   console.log(`🔑 Master API Key: ${masterKey}`);
   console.log(`👤 Admin Username: admin | Default Password: admin`);
+  console.log(`🛡️ Rate Limiting: Active (5 strikes = 15m lockout + 1s tarpit)`);
   console.log(`======================================================\n`);
 });

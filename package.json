@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node src/server.js",
-    "test": "node test/test.js"
+    "test": "node test/test.js",
+    "reset-admin": "node src/reset-admin.js"
   },
   "keywords": [
     "firefly",
