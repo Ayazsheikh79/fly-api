@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json.schemastore.org/mcp-server-manifest.json",
+  "name": "adobe-firefly",
+  "displayName": "Adobe Firefly & Partner Models Microservice",
+  "version": "1.0.0",
+  "description": "Enterprise autonomous AI image generation microservice supporting 19 models (Adobe Firefly 4, GPT Sunburst, FLUX, Gemini, Runway) with serial queuing, credit tracking, and multi-reference composition.",
+  "author": "Antigravity",
+  "homepage": "https://github.com/ayaz/firefly-api",
+  "command": "node",
+  "args": ["mcp/server.js"],
+  "env": {
+    "FIREFLY_API_URL": {
+      "type": "string",
+      "description": "Base URL of your running Firefly API service",
+      "default": "http://localhost:5055"
+    },
+    "FIREFLY_API_KEY": {
+      "type": "string",
+      "description": "Master API Key for authentication (found in dashboard or config.json)"
+    }
+  },
+  "capabilities": {
+    "tools": true,
+    "resources": false,
+    "prompts": false
+  },
+  "instructions": "./instructions.md",
+  "tools": [
+    {
+      "name": "firefly_generate_image",
+      "schema": "./firefly_generate_image.json"
+    },
+    {
+      "name": "firefly_get_balance",
+      "schema": "./firefly_get_balance.json"
+    },
+    {
+      "name": "firefly_get_status",
+      "schema": "./firefly_get_status.json"
+    },
+    {
+      "name": "firefly_list_models",
+      "schema": "./firefly_list_models.json"
+    }
+  ]
+}

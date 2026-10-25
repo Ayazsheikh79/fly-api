@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "name": "firefly_generate_image",
+  "description": "Generate high-fidelity AI images via Adobe Firefly microservice. Supports GPT Image 2.5 Sunburst (default 5 cr), Firefly Image 4 (0 cr FREE), FLUX, Gemini, and Runway.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "prompt": {
+        "type": "string",
+        "description": "Detailed text prompt describing the image to generate."
+      },
+      "model_id": {
+        "type": "string",
+        "description": "Model ID to use. Default is 'gpt-image-2-5-prism' (5 cr). Free options: 'clio-v4-standard', 'clio-v3-standard'. Others: 'flux-2-pro' (20 cr), 'nano-banana-3' (20 cr), 'runway-gen4' (40 cr)."
+      },
+      "aspect": {
+        "type": "string",
+        "enum": ["auto", "1:1", "16:9", "9:16", "3:4", "4:3"],
+        "description": "Aspect ratio. Default is 'auto' (1024x1024). Use '3:4' for vertical posters, '16:9' for horizontal."
+      },
+      "quality": {
+        "type": "string",
+        "enum": ["medium", "high"],
+        "description": "Quality detail level. Default is 'medium' (5 cr). 'high' costs 15 cr."
+      },
+      "reference_images": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Up to 4 reference image URLs, local file paths, or asset IDs."
+      },
+      "reference_usage": {
+        "type": "string",
+        "enum": ["subject", "style", "structure"],
+        "description": "How to apply reference image (default: 'subject'). 'subject' keeps character identity, 'style' copies art style."
+      }
+    },
+    "required": ["prompt"]
+  }
+}
